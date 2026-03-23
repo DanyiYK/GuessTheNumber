@@ -108,6 +108,8 @@ function ResetStats() {
     const tbody = document.querySelector("#tbody");
     const modal = document.querySelector("#result");
 
+    updateCounter();
+
     if(input){
         input.removeAttribute("disabled");
     }
