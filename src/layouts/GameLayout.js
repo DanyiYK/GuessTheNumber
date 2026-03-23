@@ -174,7 +174,10 @@ function doAttempt() {
 }
 
 function updateCounter() {
-    document.querySelector("#hearts").textContent = MaxAttempts-Stats.attempts.length;
+    const hearts = document.querySelector("#hearts");
+    if(!hearts){ return; }
+    
+    hearts.textContent = MaxAttempts-Stats.attempts.length;
 }
 
 function AttemptTable() {
