@@ -46,7 +46,7 @@ export function WonContent() {
     return div;
 }
 
-export function LostContent() {
+export function LostContent(randomNumber = -1) {
     const div = document.createElement("div");
     div.classList.add("flex", "justify-center", "items-center", "flex-col", "gap-4", "mt-8")
 
@@ -56,8 +56,13 @@ export function LostContent() {
 
     const p = document.createElement("p");
     p.classList.add("text-center");
-    p.textContent = "You lost!";
+    p.innerHTML = `You lost!`;
     div.append(p);
+
+    const p2 = document.createElement("p");
+    p2.classList.add("text-center", "text-gray-400");
+    p2.innerHTML = `The number was <b>${randomNumber}</b>`;
+    div.append(p2);
 
     return div;
 }

@@ -169,7 +169,7 @@ function doAttempt() {
         input.setAttribute("disabled", "");
         Stats.status = "lost"
         document.querySelector("#retry").style.display = "block";
-        setTimeout(()=>Modal("result", LostContent()), 1000);
+        setTimeout(()=>Modal("result", LostContent(Stats.randomNumber)), 1000);
     }
 }
 
