@@ -1,6 +1,8 @@
-import { createElement, ArrowUp, ArrowDown, Check, FileQuestion } from "lucide";
+import { createElement, ArrowUp, ArrowDown, Check, FileQuestion, Heart, HeartHandshake } from "lucide";
+import { HeartCounter } from "../components/HeartCounter";
+import { LostContent, Modal, WonContent } from "../components/Modal";
 
-const colors = {
+const Colors = {
     correct: {
         bg:"bg-green-800",
         text: "text-green-500"
@@ -10,7 +12,13 @@ const colors = {
         text: "text-yellow-400"
     }
 };
-const choosenNumber = 10;
+
+const MaxAttempts = 10;
+const Stats = {
+    randomNumber: 0,
+    attempts: [],
+    status: "playing"
+}
 
 export function GameLayout() {
     const fragment = document.createDocumentFragment();
@@ -33,13 +41,33 @@ export function GameLayout() {
     hr.classList.add("border-t", "border", "w-full", "border-gray-600");
     div2.append(hr);
 
-    const logo = document.createElement("img");
-    logo.src = ""; // TODO: Insert a good logo
-    div2.append(logo);
+    div2.append(HeartCounter());
+    div2.append(InputField());
     
-    const inputField = document.createElement("div");
-    inputField.classList.add("flex", "justify-center", "items-center", "gap-2", "w-full")
-    div2.append(inputField);
+    const p = document.createElement("p");
+    p.classList.add("validator-hint");
+    p.textContent = "Must be between be 1 to 10";
+    
+    const attempts = AttemptTable();
+    div2.append(attempts)
+
+    const retryButton = document.createElement("button");
+    retryButton.classList.add("btn", "hover:bg-blue-600", "hover:text-white", "duration-200", "w-32");
+    retryButton.textContent = "Retry";
+    retryButton.style.display = "none";
+    retryButton.setAttribute("id", "retry");
+    div2.append(retryButton);
+
+    retryButton.addEventListener("click", e=>{retryButton.style.display = "none"; ResetStats()});
+
+    ResetStats()
+
+    return fragment;
+}
+
+function InputField() {
+    const field = document.createElement("div");
+    field.classList.add("flex", "justify-center", "items-center", "gap-2", "w-full")
     
     const input = document.createElement("input");
     input.setAttribute("type", "number");
@@ -51,60 +79,100 @@ export function GameLayout() {
     input.setAttribute("min", "1");
     input.setAttribute("max", "100");
     input.setAttribute("title", "Must be between be 1 to 100");
-    inputField.append(input)
+    field.append(input)
     
     const sendButton = document.createElement("button");
     sendButton.classList.add("btn", "hover:bg-green-600", "duration-200");
     sendButton.textContent = "Send";
-    inputField.append(sendButton);
-    
-    const p = document.createElement("p");
-    p.classList.add("validator-hint");
-    p.textContent = "Must be between be 1 to 10";
-    
-    const attempts = AttemptTable();
-    div2.append(attempts)
+    field.append(sendButton);
 
     input.addEventListener("keydown", (e)=>{
         if(e.key==='Enter'){
-            DoAttempt();
+            doAttempt();
         }
 
         input.focus();
     });
-    sendButton.addEventListener("click", DoAttempt);
 
-    return fragment;
+    sendButton.addEventListener("click", e=>doAttempt());
+
+    return field;
 }
 
-function DoAttempt() {
+function ResetStats() {
+    Stats.attempts.length = 0;
+    Stats.randomNumber = Math.round(Math.random()*(100-1)+1);
+    Stats.status = "playing";
+
+    const input = document.querySelector("#input");
+    const tbody = document.querySelector("#tbody");
+    const modal = document.querySelector("#result");
+
+    if(input){
+        input.removeAttribute("disabled");
+    }
+
+    if(modal){
+        modal.remove();
+    }
+
+    if(!tbody){ return; };
+
+    while(tbody.children.length!==0) {
+        tbody.children[0].remove();
+    }
+}
+
+function doAttempt() {
     const input = document.querySelector("#input");
     const value = +input.value;
 
     input.value = "";
 
     if(isNaN(value)) {
-        alert("Invalid input!");
+        return alert("Invalid input!");
+    } else if (Stats.attempts.some((v)=>{return v==value})) {
+        return alert("You already inserted this number!");
     } else if (value < 1 || value > 100) {
-        alert("Number has to be between 1 and 100")
+        return alert("Number has to be between 1 and 100");
     }
 
+    Stats.attempts.push(value);
+    updateCounter();
+
     switch(true) {
-        case value > choosenNumber:
-            MakeAttemptEntry(value, ArrowDown, "The number is lower!");
+        case value > Stats.randomNumber:
+            AddAttemptToTable(value, ArrowDown, "The number is lower!");
                 
             break;
                 
-        case value < choosenNumber:
-            MakeAttemptEntry(value, ArrowUp, "The number is greater!");
+        case value < Stats.randomNumber:
+            AddAttemptToTable(value, ArrowUp, "The number is greater!");
                     
             break;
             
         default:
-            MakeAttemptEntry(value, Check, "The number is correct!", colors.correct);
+            AddAttemptToTable(value, Check, "The number is correct!", Colors.correct);
 
-            break;
+            input.setAttribute("disabled", "");
+            Stats.status = "won"
+            document.querySelector("#retry").style.display = "block";
+
+            setTimeout(()=>Modal("result", WonContent()), 1000);
+
+            return;
     }
+
+    if(Stats.attempts.length>=MaxAttempts) {
+        input.setAttribute("disabled", "");
+        Stats.status = "lost"
+        document.querySelector("#retry").style.display = "block";
+        setTimeout(()=>Modal("result", LostContent()), 1000);
+    }
+}
+
+function updateCounter() {
+    document.querySelector("#hearts").textContent = MaxAttempts-Stats.attempts.length;
 }
 
 function AttemptTable() {
@@ -137,7 +205,7 @@ function AttemptTable() {
     return div
 }
 
-function MakeAttemptEntry(guess=-1, icon=Check, text = "Unknown", color_object=colors.other) {
+function AddAttemptToTable(guessedNumber=-1, icon=Check, text = "Unknown", color_object=Colors.other) {
     const tbody = document.querySelector("#tbody");
 
     const tr = document.createElement("tr");
@@ -146,7 +214,7 @@ function MakeAttemptEntry(guess=-1, icon=Check, text = "Unknown", color_object=c
     tr.classList.add(color_object.bg, "duration-700");
 
     const th = document.createElement("th");
-    th.textContent = guess;
+    th.textContent = guessedNumber;
     tr.appendChild(th);
     
     const td = document.createElement("td");
